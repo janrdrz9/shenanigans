@@ -1,4 +1,3 @@
-```powershell
 <#
 
 DynWin32-ShellcodeProcessHollowing.ps1 performs shellcode based process hollowing using
@@ -132,4 +131,3 @@ $ResumeThread.Invoke($hThread)
 
 # Close powershell to remove it as the parent of svchost.exe
 exit
-```
